@@ -7,13 +7,42 @@ name = "semloop"
 version = "0.1.0"
 description = "Semantic loop detection for agent traces: replace word-overlap heuristics with a judged yes/no about whether each step made progress."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.9"
 authors = [{ name = "Venkat" }]
+keywords = [
+    "agents",
+    "llm",
+    "eval",
+    "evaluation",
+    "deepeval",
+    "loop-detection",
+    "llm-as-judge",
+    "agent-traces",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
 dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/VBS2004/semloop"
+Repository = "https://github.com/VBS2004/semloop"
+Issues = "https://github.com/VBS2004/semloop/issues"
 
 [tool.setuptools.packages.find]
 include = ["semloop*"]
