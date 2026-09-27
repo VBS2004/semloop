@@ -1,0 +1,32 @@
+60 traces from dataset.jsonl
+
+Stagnation signal, correct calls per family (like-for-like: reasoning check only)
+family                    lexical     
+--------------------------------------
+alternating_loop            0/6       
+boilerplate_progress        0/6       
+cosmetic_args_loop          0/6       
+identical_tool_loop         6/6       
+paraphrased_loop            0/6       
+progress                    6/6       
+retry_then_recover          6/6       
+template_progress           0/6       
+terse_loop                  0/6       
+verbatim_loop               6/6       
+
+Metric verdict, correct calls per family (whole combined score vs threshold)
+family                    lexical     
+--------------------------------------
+alternating_loop            0/6       
+boilerplate_progress        6/6       
+cosmetic_args_loop          0/6       
+identical_tool_loop         6/6       
+paraphrased_loop            0/6       
+progress                    6/6       
+retry_then_recover          6/6       
+template_progress           6/6       
+terse_loop                  0/6       
+verbatim_loop               6/6       
+
+Totals
+  lexical: stagnation 24/60 (40%) · metric verdict 36/60 (60%) · undecided 0 · errors 0 · $0.0000 (0 input tokens) · n/a mean
