@@ -183,6 +183,15 @@ def main() -> None:
     )
     parser.add_argument("--model", default=None, help="model id for the chosen judge")
     parser.add_argument("--base-url", default=None)
+    parser.add_argument(
+        "--jev-path",
+        default=None,
+        help=(
+            "path appended to --base-url for the jev judge (default /v1/systemone); "
+            "pass '' when --base-url is already the full endpoint, e.g. an "
+            "OpenRouter proxy that serves the System One protocol directly"
+        ),
+    )
     parser.add_argument("--api-key-env", default="OPENAI_API_KEY")
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--lookahead", type=int, default=2)
@@ -226,7 +235,11 @@ def main() -> None:
             continue
 
         if judge == "jev":
-            backend: Any = JevBackend(model=args.model or "jev-latest", base_url=args.base_url)
+            backend: Any = JevBackend(
+                model=args.model or "jev-latest",
+                base_url=args.base_url,
+                path=args.jev_path,
+            )
             label = f"jev:{backend.model}"
         else:
             backend = LLMJudgeBackend(

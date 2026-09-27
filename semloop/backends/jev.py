@@ -52,6 +52,7 @@ class JevBackend:
         *,
         model: str = DEFAULT_MODEL,
         base_url: Optional[str] = None,
+        path: Optional[str] = None,
         timeout: float = 30.0,
     ):
         self.api_key = api_key or os.environ.get("TYPESAFE_API_KEY", "")
@@ -63,6 +64,10 @@ class JevBackend:
         self.base_url = (
             base_url or os.environ.get("TYPESAFE_BASE_URL", DEFAULT_BASE_URL)
         ).rstrip("/")
+        # Some hosts (e.g. an OpenRouter proxy) serve the System One protocol
+        # at a path of their own rather than TypeSafe's own /v1/systemone —
+        # pass path="" when base_url is already the full endpoint.
+        self.path = SYSTEM_ONE_PATH if path is None else path
         self.timeout = timeout
 
     def ask(
@@ -75,7 +80,7 @@ class JevBackend:
             {"model": self.model, "state": state, "questions": dict(questions)}
         ).encode("utf-8")
         request = urllib.request.Request(
-            f"{self.base_url}{SYSTEM_ONE_PATH}",
+            f"{self.base_url}{self.path}",
             data=payload,
             method="POST",
             headers={
