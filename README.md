@@ -105,6 +105,63 @@ trace) reaches the right verdict when its questions are answered correctly.
 Whether a live Jev or LLM judge actually answers them correctly on your traces
 is a separate, unavoidable question — see "What this doesn't prove" below.
 
+## A real judge run (2026-09-27)
+
+The question above has an answer now, not just an oracle's stand-in for one.
+`bench/run.py --judge jev` was run once against `typesafe/jev-1.13` through a
+host that serves the System One protocol at its own path rather than
+TypeSafe's `/v1/systemone` — `JevBackend` now takes a `path=` override for
+exactly this (`--jev-path ""` on the CLI, when `--base-url` is already the
+full endpoint):
+
+```
+$ python bench/run.py --judge jev --model typesafe/jev-1.13 \
+    --base-url <endpoint> --jev-path ""
+```
+
+```
+family                    lexical     jev:typesafe/jev-1.13
+-------------------------------------------------------------
+alternating_loop            0/6             6/6
+boilerplate_progress        0/6             6/6
+cosmetic_args_loop          0/6             6/6
+identical_tool_loop         6/6             6/6
+paraphrased_loop            0/6             6/6
+progress                    6/6             6/6
+retry_then_recover          6/6             6/6
+template_progress           0/6             0/6   <- see below
+terse_loop                  0/6             6/6
+verbatim_loop                6/6             6/6
+
+Totals: stagnation — lexical 24/60 (40%) · jev 54/60 (90%)
+        verdict    — lexical 36/60 (60%) · jev 60/60 (100%)
+        $0.0042 total (99,817 input tokens) · 779 ms mean latency · 7 undecided · 0 errors
+```
+
+This is not the oracle: every answer came from the model actually reading
+each trace's content, with no knowledge of which family generated it. The
+stagnation number lands almost exactly on the oracle's 90% — the mechanism
+and a real judge agree, which is the result you want from this kind of check.
+7 of the 60 traces fell in the 0.4–0.6 undecided band and were resolved by
+`fallback_to_lexical_when_uncertain`; none errored.
+
+**One place the real judge disagrees with the oracle's script.**
+`template_progress` (five steps, each touching a different file, described in
+the same sentence shape) fools the real judge on the fine-grained stagnation
+question exactly the way it fools the lexical check — 0/6, where the oracle
+had assumed a competent judge would score 6/6. It doesn't flip the overall
+verdict here only because the 0.35 weight on reasoning stagnation isn't
+enough on its own to fail the trace (see "A weighting quirk" below) — the
+false-positive blind spot this package claims to close is, for this model, at
+least partly still open, just hidden by the weighting rather than fixed. A
+caller who raises the stagnation weight, or reads `score_breakdown` directly
+instead of the combined score, would still see it.
+
+This is one run, on one synthetic dataset, through one specific host — not
+proof this holds on production traffic, and not a claim about TypeSafe's own
+endpoint or any other model. It is a real data point where the section above
+could only offer a scripted one.
+
 ## The five blind spots, and how each is closed
 
 1. **Paraphrased loops.** Bigram Jaccard and `SequenceMatcher` both stay below
@@ -166,16 +223,20 @@ combined verdict.
 The dataset is hand-built from templates, not sampled from production traces.
 It's enough to show each blind spot exists and is reproducible — it says
 nothing about how often paraphrased loops, cosmetic argument changes, or false
-positives on genuine multi-file progress actually occur in your traffic, or
-whether a live judge answers these particular questions correctly. Run
-`bench/run.py --judge jev` (needs `TYPESAFE_API_KEY`) or `--judge llm --model
-<your model>` (needs an API key for that model, plus `--input-usd-per-mtok`
-and `--output-usd-per-mtok` if you want a real cost column) on your own traces
-before trusting this in production. The `--judge` columns report cost,
-latency, and an `undecided` count (answers in the 0.4–0.6 band that fell back
-to the lexical check — see `fallback_to_lexical_when_uncertain`) alongside
-accuracy, specifically so a live run can be judged on more than a single
-number.
+positives on genuine multi-file progress actually occur in your traffic.
+"A real judge run" above answers whether a live judge answers *these
+particular* questions correctly on *this* dataset — mostly yes, with one
+blind spot ( `template_progress`) still open on the model tested — but that
+was one model, through one host, on one synthetic dataset. Run
+`bench/run.py --judge jev` (needs `TYPESAFE_API_KEY`, or pass `--base-url`
+and `--jev-path ""` for a host that serves the protocol somewhere other than
+`/v1/systemone`) or `--judge llm --model <your model>` (needs an API key for
+that model, plus `--input-usd-per-mtok` and `--output-usd-per-mtok` if you
+want a real cost column) on your own traces before trusting this on
+production traffic. The `--judge` columns report cost, latency, and an
+`undecided` count (answers in the 0.4–0.6 band that fell back to the lexical
+check — see `fallback_to_lexical_when_uncertain`) alongside accuracy,
+specifically so a live run can be judged on more than a single number.
 
 ## Verifying this without an API key
 
@@ -205,7 +266,9 @@ semloop/
   lexical.py     Faithful port of deepeval's current scoring, for the baseline
   semantic.py    SemanticLoopDetection: the judged replacement
   backends/
-    jev.py       TypeSafe System One API client (stdlib only, no deps)
+    jev.py       TypeSafe System One API client (stdlib only, no deps;
+                 path= overridable for hosts that don't serve it at
+                 /v1/systemone, e.g. an OpenRouter proxy)
     llm.py       Any OpenAI-compatible chat model as a judge, for comparison
     __init__.py  Answer/Backend/JudgeResponse types, plus MockBackend
 bench/
@@ -221,4 +284,6 @@ v0.1.0. Built from a read of deepeval's `agent_loop_detection.py` on
 2026-09-27; the deepeval maintainers have their own reasons for keeping the
 metric deterministic and zero-cost by default (their own docstring names the
 tradeoff), so this is offered as a standalone package and a measured case for
-an optional judged mode — not yet proposed upstream.
+an optional judged mode — not yet proposed upstream. Validated once against a
+real judge the same day ("A real judge run" above); not yet run against
+production traffic.
